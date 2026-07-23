@@ -1,0 +1,46 @@
+name: Update packages.adb index
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'packages/*.apk'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate packages.adb index
+        run: |
+          if [ -d packages ] && [ "$(find packages -name '*.apk' | wc -l)" -gt 0 ]; then
+            cd packages
+            apk index -o packages.adb *.apk
+            echo "Successfully generated packages.adb:"
+            ls -la packages.adb
+          fi
+
+      - name: Commit and push updated packages.adb
+        run: |
+          apk add --no-cache git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git add packages/packages.adb
+          if ! git diff --staged --quiet; then
+            git commit -m "build: update packages.adb index [skip ci]"
+            git push origin HEAD:master
+          else
+            echo "No changes to packages.adb"
+          fi
