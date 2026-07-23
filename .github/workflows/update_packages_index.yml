@@ -21,18 +21,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install apk-tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y apk-tools
-
-      - name: Generate packages.adb index
+      - name: Generate packages.adb index using Alpine container
         run: |
           if [ -d packages ] && [ "$(find packages -name '*.apk' | wc -l)" -gt 0 ]; then
-            cd packages
-            apk index -o packages.adb *.apk
-            echo "Successfully generated packages.adb:"
-            ls -la packages.adb
+            docker run --rm -v "$PWD/packages:/packages" alpine:latest sh -c "cd /packages && apk index -o packages.adb *.apk && ls -la packages.adb"
           fi
 
       - name: Commit and push updated packages.adb
